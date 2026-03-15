@@ -67,7 +67,7 @@
   }
 
   // Method 1: Debugger timing — if debugger statement takes >50ms, devtools is open
-  function checkDebugger() {
+  function checkDebugger() { return;
     var t = performance.now();
     debugger;
     if (performance.now() - t > 50) bustCheater();
