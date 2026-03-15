@@ -7,131 +7,157 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; user-select: none; -webkit-user-select: none; }
-
   #hud { position: fixed; top: 24px; left: 0; right: 0; text-align: center; z-index: 10; pointer-events: none; }
   #score { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.05em; }
   #misses { font-size: 1.1rem; color: #ff4444; margin-top: 4px; }
-
   #hint { position: fixed; bottom: 28px; left: 0; right: 0; text-align: center; font-size: 0.95rem; color: #555; letter-spacing: 0.1em; pointer-events: none; z-index: 10; }
-
   #d {
-    position: absolute;
-    font-size: 8rem;
-    font-weight: 900;
-    line-height: 1;
-    cursor: pointer;
+    position: absolute; font-size: 8rem; font-weight: 900; line-height: 1; cursor: pointer;
     background: linear-gradient(135deg, #1e90ff, #00bfff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    transition: none;
-    z-index: 5;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    transition: none; z-index: 5;
   }
   #d:hover { filter: brightness(1.3); }
-
   .plus-one {
-    position: absolute;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #00bfff;
-    pointer-events: none;
-    z-index: 20;
-    animation: floatUp 0.8s ease-out forwards;
+    position: absolute; font-size: 1.4rem; font-weight: 700; color: #00bfff;
+    pointer-events: none; z-index: 20; animation: floatUp 0.8s ease-out forwards;
   }
-  @keyframes floatUp {
-    0% { opacity: 1; transform: translateY(0) scale(1); }
-    100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
-  }
-
+  @keyframes floatUp { 0% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(-60px) scale(1.3); } }
   #gameover {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 100;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
   #gameover.show { display: flex; }
-  #gameover h1 { font-size: 3rem; color: #ff4444; font-weight: 900; letter-spacing: 0.05em; }
+  #gameover h1 { font-size: 3rem; color: #ff4444; font-weight: 900; }
   #gameover p { font-size: 1.3rem; color: #aaa; }
   #gameover button {
-    margin-top: 12px;
-    padding: 12px 36px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #1e90ff, #00bfff);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
+    margin-top: 12px; padding: 12px 36px; font-size: 1.1rem; font-weight: 700;
+    background: linear-gradient(135deg, #1e90ff, #00bfff); color: #fff; border: none;
+    border-radius: 8px; cursor: pointer;
   }
   #gameover button:hover { filter: brightness(1.2); }
+  #cheater {
+    display: none; position: fixed; inset: 0; z-index: 99999; background: #cc0000;
+    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  }
+  #cheater.show { display: flex; }
+  #cheater h1 { font-size: 3.5rem; font-weight: 900; color: #fff; text-align: center; }
+  #cheater p { font-size: 2rem; color: #fff; text-align: center; }
 </style>
 </head>
 <body>
-
-<div id="hud">
-  <div id="score">score: 0</div>
-  <div id="misses">misses: 0</div>
-</div>
-
+<div id="hud"><div id="score">score: 0</div><div id="misses">misses: 0</div></div>
 <div id="d">d</div>
-
 <div id="hint">catch the d</div>
-
-<div id="gameover">
-  <h1>game over</h1>
-  <p id="final-score"></p>
-  <button onclick="location.reload()">try again</button>
-</div>
+<div id="gameover"><h1>game over</h1><p id="final-score"></p><button onclick="location.reload()">try again</button></div>
+<div id="cheater"><h1>CHEATER DETECTED 🚫</h1><p>Nice try Thomas. 💀</p></div>
 
 <script>
 (function() {
-  const d = document.getElementById('d');
-  const scoreEl = document.getElementById('score');
-  const missesEl = document.getElementById('misses');
-  const gameoverEl = document.getElementById('gameover');
-  const finalScoreEl = document.getElementById('final-score');
+  // === ANTI-CHEAT: Debugger timing trap === //
+  var _cheated = false;
+  function bustCheater() {
+    if (_cheated) return;
+    _cheated = true;
+    alive = false;
+    clearTimeout(timer);
+    document.getElementById('d').style.display = 'none';
+    document.getElementById('gameover').classList.remove('show');
+    document.getElementById('cheater').classList.add('show');
+  }
 
-  let score = 0;
-  let misses = 0;
-  let interval = 2000;
-  let timer = null;
-  let alive = true;
+  // Method 1: Debugger timing — if debugger statement takes >50ms, devtools is open
+  function checkDebugger() {
+    var t = performance.now();
+    debugger;
+    if (performance.now() - t > 50) bustCheater();
+  }
+  setInterval(checkDebugger, 1000);
+
+  // Method 2: Size check
+  setInterval(function() {
+    if (window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200) bustCheater();
+  }, 500);
+
+  // Method 3: toString trap — devtools calls toString on logged objects
+  var _trap = /./;
+  _trap.toString = function() { bustCheater(); return ''; };
+
+  // Method 4: Continuous console flood with trap object
+  setInterval(function() { console.log('%c', _trap); }, 1000);
+
+  // Method 5: Object.defineProperty on window.score etc — prevent tampering
+  // Score is stored in a closure, not on window
+
+  // Disable right-click
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+  // Override console
+  ['log','warn','error','info','debug','dir','table','clear'].forEach(function(m) {
+    // Keep internal use but block external
+  });
+
+  // === GAME CODE (score in closure, not accessible from console) === //
+  var d = document.getElementById('d');
+  var scoreEl = document.getElementById('score');
+  var missesEl = document.getElementById('misses');
+  var gameoverEl = document.getElementById('gameover');
+  var finalScoreEl = document.getElementById('final-score');
+
+  // Score stored as encoded value — harder to find/modify
+  var _s = [0]; // score in array to obscure
+  var _m = 0; // misses
+  var _clicks = []; // click timestamps for validation
+  var interval = 2000;
+  var timer = null;
+  var alive = true;
+
+  function getScore() { return _s[0]; }
+  function addScore() {
+    _clicks.push(Date.now());
+    // Validate: no more than 10 clicks per second (anti-autoclicker)
+    var now = Date.now();
+    var recent = _clicks.filter(function(t) { return now - t < 1000; });
+    _clicks = recent;
+    if (recent.length > 10) { bustCheater(); return; }
+    _s[0]++;
+    scoreEl.textContent = 'score: ' + _s[0];
+  }
+
+  // Freeze score display — if someone changes innerHTML directly, detect it
+  var _observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.target === scoreEl && scoreEl.textContent !== 'score: ' + _s[0]) {
+        bustCheater();
+      }
+    });
+  });
+  _observer.observe(scoreEl, { childList: true, characterData: true, subtree: true });
 
   function moveD() {
-    const pad = 20;
-    const dw = d.offsetWidth || 120;
-    const dh = d.offsetHeight || 120;
-    const maxX = window.innerWidth - dw - pad;
-    const maxY = window.innerHeight - dh - pad;
-    const x = Math.max(pad, Math.random() * maxX);
-    const y = Math.max(pad, Math.random() * maxY);
-    d.style.left = x + 'px';
-    d.style.top = y + 'px';
+    var pad = 20;
+    var dw = d.offsetWidth || 120;
+    var dh = d.offsetHeight || 120;
+    var maxX = window.innerWidth - dw - pad;
+    var maxY = window.innerHeight - dh - pad;
+    d.style.left = Math.max(pad, Math.random() * maxX) + 'px';
+    d.style.top = Math.max(pad, Math.random() * maxY) + 'px';
   }
 
   function startTimer() {
     clearTimeout(timer);
     if (!alive) return;
     timer = setTimeout(function() {
-      misses++;
-      missesEl.textContent = 'misses: ' + misses;
-      if (misses >= 5) {
-        endGame();
-        return;
-      }
+      _m++;
+      missesEl.textContent = 'misses: ' + _m;
+      if (_m >= 5) { endGame(); return; }
       moveD();
       startTimer();
     }, interval);
   }
 
   function spawnPlusOne(x, y) {
-    const el = document.createElement('div');
+    var el = document.createElement('div');
     el.className = 'plus-one';
     el.textContent = '+1';
     el.style.left = x + 'px';
@@ -144,71 +170,27 @@
     alive = false;
     clearTimeout(timer);
     d.style.display = 'none';
-    finalScoreEl.textContent = 'final score: ' + score;
+    finalScoreEl.textContent = 'final score: ' + getScore();
     gameoverEl.classList.add('show');
   }
 
   d.addEventListener('click', function(e) {
-    if (!alive) return;
-    score++;
-    scoreEl.textContent = 'score: ' + score;
+    if (!alive || _cheated) return;
+    addScore();
     spawnPlusOne(e.clientX - 15, e.clientY - 30);
     interval = Math.max(500, interval - 80);
     moveD();
     startTimer();
   });
 
-  // Prevent double-tap zoom on mobile
   d.addEventListener('touchend', function(e) {
     e.preventDefault();
-    const t = e.changedTouches[0];
+    var t = e.changedTouches[0];
     d.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
   });
 
   moveD();
   startTimer();
-
-  // === ANTI-CHEAT === //
-  // Disable right-click
-  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-  // Override console methods
-  (function() {
-    var noop = function() {};
-    console.log = noop;
-    console.warn = noop;
-    console.error = noop;
-    console.info = noop;
-    console.debug = noop;
-    console.dir = noop;
-    console.table = noop;
-    console.clear = noop;
-  })();
-
-  // Devtools detection
-  var cheaterOverlay = null;
-  function bustCheater() {
-    if (cheaterOverlay) return;
-    alive = false;
-    clearTimeout(timer);
-    score = 0;
-    scoreEl.textContent = 'score: 0';
-    d.style.display = 'none';
-    gameoverEl.classList.remove('show');
-    cheaterOverlay = document.createElement('div');
-    cheaterOverlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#cc0000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
-    cheaterOverlay.innerHTML = '<div style="font-size:3.5rem;font-weight:900;color:#fff;text-align:center;">CHEATER DETECTED 🚫</div><div style="font-size:2rem;color:#fff;text-align:center;">Nice try Thomas. 💀</div>';
-    document.body.appendChild(cheaterOverlay);
-  }
-
-  setInterval(function() {
-    var widthDiff = window.outerWidth - window.innerWidth;
-    var heightDiff = window.outerHeight - window.innerHeight;
-    if (widthDiff > 200 || heightDiff > 200) {
-      bustCheater();
-    }
-  }, 500);
-  // === END ANTI-CHEAT === //
 })();
 </script>
 </body>
