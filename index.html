@@ -167,6 +167,48 @@
 
   moveD();
   startTimer();
+
+  // === ANTI-CHEAT === //
+  // Disable right-click
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+  // Override console methods
+  (function() {
+    var noop = function() {};
+    console.log = noop;
+    console.warn = noop;
+    console.error = noop;
+    console.info = noop;
+    console.debug = noop;
+    console.dir = noop;
+    console.table = noop;
+    console.clear = noop;
+  })();
+
+  // Devtools detection
+  var cheaterOverlay = null;
+  function bustCheater() {
+    if (cheaterOverlay) return;
+    alive = false;
+    clearTimeout(timer);
+    score = 0;
+    scoreEl.textContent = 'score: 0';
+    d.style.display = 'none';
+    gameoverEl.classList.remove('show');
+    cheaterOverlay = document.createElement('div');
+    cheaterOverlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#cc0000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
+    cheaterOverlay.innerHTML = '<div style="font-size:3.5rem;font-weight:900;color:#fff;text-align:center;">CHEATER DETECTED 🚫</div><div style="font-size:2rem;color:#fff;text-align:center;">Nice try Thomas. 💀</div>';
+    document.body.appendChild(cheaterOverlay);
+  }
+
+  setInterval(function() {
+    var widthDiff = window.outerWidth - window.innerWidth;
+    var heightDiff = window.outerHeight - window.innerHeight;
+    if (widthDiff > 200 || heightDiff > 200) {
+      bustCheater();
+    }
+  }, 500);
+  // === END ANTI-CHEAT === //
 })();
 </script>
 </body>
