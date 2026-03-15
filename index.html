@@ -35,6 +35,13 @@
     background: linear-gradient(135deg, #1e90ff, #00bfff); color: #fff; border: none;
     border-radius: 8px; cursor: pointer;
   }
+  #cheater {
+    display: none; position: fixed; inset: 0; z-index: 99999; background: #cc0000;
+    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  }
+  #cheater.show { display: flex; }
+  #cheater h1 { font-size: 3.5rem; font-weight: 900; color: #fff; }
+  #cheater p { font-size: 1.5rem; color: #fff; }
 </style>
 </head>
 <body>
@@ -42,6 +49,7 @@
 <div id="d">d</div>
 <div id="hint">catch the d</div>
 <div id="gameover"><h1>game over</h1><p id="final-score"></p><button onclick="location.reload()">try again</button></div>
+<div id="cheater"><h1>CHEATER DETECTED 🚫</h1><p>Nice try Thomas. Close dev tools and refresh. 💀</p></div>
 <script>
 (function() {
   var d = document.getElementById('d');
@@ -49,22 +57,39 @@
   var missesEl = document.getElementById('misses');
   var gameoverEl = document.getElementById('gameover');
   var finalScoreEl = document.getElementById('final-score');
+  var cheaterEl = document.getElementById('cheater');
 
-  // Score in closure — not accessible from console
-  var _s = 0;
-  var _m = 0;
-  var interval = 2000;
-  var timer = null;
-  var alive = true;
+  var _s = 0, _m = 0, interval = 2000, timer = null, alive = true, busted = false;
 
-  // Anti-tamper: watch score element for external modifications
-  var observer = new MutationObserver(function() {
-    if (alive && scoreEl.textContent !== 'score: ' + _s) {
-      scoreEl.textContent = 'score: ' + _s; // silently fix it
+  // === DEVTOOLS DETECTION: console.log image trick ===
+  // When devtools is open, logging an element triggers its getter
+  // This works even if devtools was open BEFORE page load
+  var devtoolsOpen = false;
+  var el = new Image();
+  Object.defineProperty(el, 'id', {
+    get: function() {
+      devtoolsOpen = true;
+      if (!busted) bustCheater();
     }
   });
-  observer.observe(scoreEl, { childList: true, characterData: true, subtree: true });
 
+  function checkDevtools() {
+    devtoolsOpen = false;
+    console.log(el);
+    console.clear();
+  }
+  setInterval(checkDevtools, 1000);
+
+  function bustCheater() {
+    busted = true;
+    alive = false;
+    clearTimeout(timer);
+    d.style.display = 'none';
+    gameoverEl.classList.remove('show');
+    cheaterEl.classList.add('show');
+  }
+
+  // === GAME ===
   function moveD() {
     var pad = 20, dw = 120, dh = 120;
     var maxX = window.innerWidth - dw - pad;
@@ -99,13 +124,13 @@
     alive = false;
     clearTimeout(timer);
     d.style.display = 'none';
-    finalScoreEl.textContent = 'final score: ' + _s;
     scoreEl.parentElement.style.display = 'none';
+    finalScoreEl.textContent = 'final score: ' + _s;
     gameoverEl.classList.add('show');
   }
 
   d.addEventListener('click', function(e) {
-    if (!alive) return;
+    if (!alive || busted) return;
     _s++;
     scoreEl.textContent = 'score: ' + _s;
     spawnPlusOne(e.clientX - 15, e.clientY - 30);
