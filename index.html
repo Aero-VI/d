@@ -15,7 +15,7 @@
     position: absolute; font-size: 8rem; font-weight: 900; line-height: 1; cursor: pointer;
     background: linear-gradient(135deg, #1e90ff, #00bfff);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    transition: none; z-index: 5;
+    z-index: 5;
   }
   #d:hover { filter: brightness(1.3); }
   .plus-one {
@@ -35,14 +35,6 @@
     background: linear-gradient(135deg, #1e90ff, #00bfff); color: #fff; border: none;
     border-radius: 8px; cursor: pointer;
   }
-  #gameover button:hover { filter: brightness(1.2); }
-  #cheater {
-    display: none; position: fixed; inset: 0; z-index: 99999; background: #cc0000;
-    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
-  }
-  #cheater.show { display: flex; }
-  #cheater h1 { font-size: 3.5rem; font-weight: 900; color: #fff; text-align: center; }
-  #cheater p { font-size: 2rem; color: #fff; text-align: center; }
 </style>
 </head>
 <body>
@@ -50,94 +42,31 @@
 <div id="d">d</div>
 <div id="hint">catch the d</div>
 <div id="gameover"><h1>game over</h1><p id="final-score"></p><button onclick="location.reload()">try again</button></div>
-<div id="cheater"><h1>CHEATER DETECTED 🚫</h1><p>Nice try Thomas. 💀</p></div>
-
 <script>
 (function() {
-  // === ANTI-CHEAT: Debugger timing trap === //
-  var _cheated = false;
-  function bustCheater() {
-    if (_cheated) return;
-    _cheated = true;
-    alive = false;
-    clearTimeout(timer);
-    document.getElementById('d').style.display = 'none';
-    document.getElementById('gameover').classList.remove('show');
-    document.getElementById('cheater').classList.add('show');
-  }
-
-  // Method 1: Debugger timing — if debugger statement takes >50ms, devtools is open
-  function checkDebugger() { return;
-    var t = performance.now();
-    debugger;
-    if (performance.now() - t > 50) bustCheater();
-  }
-  setInterval(checkDebugger, 1000);
-
-  // Method 2: Size check
-  setInterval(function() {
-    if (window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200) bustCheater();
-  }, 500);
-
-  // Method 3: toString trap — devtools calls toString on logged objects
-  var _trap = /./;
-  _trap.toString = function() { bustCheater(); return ''; };
-
-  // Method 4: Continuous console flood with trap object
-  setInterval(function() { console.log('%c', _trap); }, 1000);
-
-  // Method 5: Object.defineProperty on window.score etc — prevent tampering
-  // Score is stored in a closure, not on window
-
-  // Disable right-click
-  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-  // Override console
-  ['log','warn','error','info','debug','dir','table','clear'].forEach(function(m) {
-    // Keep internal use but block external
-  });
-
-  // === GAME CODE (score in closure, not accessible from console) === //
   var d = document.getElementById('d');
   var scoreEl = document.getElementById('score');
   var missesEl = document.getElementById('misses');
   var gameoverEl = document.getElementById('gameover');
   var finalScoreEl = document.getElementById('final-score');
 
-  // Score stored as encoded value — harder to find/modify
-  var _s = [0]; // score in array to obscure
-  var _m = 0; // misses
-  var _clicks = []; // click timestamps for validation
+  // Score in closure — not accessible from console
+  var _s = 0;
+  var _m = 0;
   var interval = 2000;
   var timer = null;
   var alive = true;
 
-  function getScore() { return _s[0]; }
-  function addScore() {
-    _clicks.push(Date.now());
-    // Validate: no more than 10 clicks per second (anti-autoclicker)
-    var now = Date.now();
-    var recent = _clicks.filter(function(t) { return now - t < 1000; });
-    _clicks = recent;
-    if (recent.length > 10) { bustCheater(); return; }
-    _s[0]++;
-    scoreEl.textContent = 'score: ' + _s[0];
-  }
-
-  // Freeze score display — if someone changes innerHTML directly, detect it
-  var _observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.target === scoreEl && scoreEl.textContent !== 'score: ' + _s[0]) {
-        bustCheater();
-      }
-    });
+  // Anti-tamper: watch score element for external modifications
+  var observer = new MutationObserver(function() {
+    if (alive && scoreEl.textContent !== 'score: ' + _s) {
+      scoreEl.textContent = 'score: ' + _s; // silently fix it
+    }
   });
-  _observer.observe(scoreEl, { childList: true, characterData: true, subtree: true });
+  observer.observe(scoreEl, { childList: true, characterData: true, subtree: true });
 
   function moveD() {
-    var pad = 20;
-    var dw = d.offsetWidth || 120;
-    var dh = d.offsetHeight || 120;
+    var pad = 20, dw = 120, dh = 120;
     var maxX = window.innerWidth - dw - pad;
     var maxY = window.innerHeight - dh - pad;
     d.style.left = Math.max(pad, Math.random() * maxX) + 'px';
@@ -170,13 +99,14 @@
     alive = false;
     clearTimeout(timer);
     d.style.display = 'none';
-    finalScoreEl.textContent = 'final score: ' + getScore();
+    finalScoreEl.textContent = 'final score: ' + _s;
     gameoverEl.classList.add('show');
   }
 
   d.addEventListener('click', function(e) {
-    if (!alive || _cheated) return;
-    addScore();
+    if (!alive) return;
+    _s++;
+    scoreEl.textContent = 'score: ' + _s;
     spawnPlusOne(e.clientX - 15, e.clientY - 30);
     interval = Math.max(500, interval - 80);
     moveD();
