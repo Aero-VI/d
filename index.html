@@ -100,6 +100,7 @@
     clearTimeout(timer);
     d.style.display = 'none';
     finalScoreEl.textContent = 'final score: ' + _s;
+    scoreEl.parentElement.style.display = 'none';
     gameoverEl.classList.add('show');
   }
 
